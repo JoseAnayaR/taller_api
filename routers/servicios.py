@@ -41,6 +41,7 @@ def crear_servicio(
 def listar_servicios(
     completado: bool = None,
     cliente_id: int = None,
+    descripcion: str = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -56,6 +57,9 @@ def listar_servicios(
     
     if cliente_id is not None:
         query = query.filter(Servicio.cliente_id == cliente_id)
+    
+    if descripcion is not None:
+        query = query.filter(Servicio.descripcion.ilike(f"%{descripcion}%"))
     
     return query.all()
 

@@ -41,15 +41,33 @@ def crear_cliente(
 def listar_clientes(
     skip: int = 0,
     limit: int = 100,
+    activo: bool = None,
+    nombre: str = None,
+    email: str = None,
     db: Session = Depends(get_db)
 ):
     """
-    Lista todos los clientes registrados.
+    Lista clientes con filtros opcionales.
     Parámetros:
-    - skip: número de clientes a saltar (paginación)
-    - limit: número máximo de resultados
+    - activo: true/false para clientes activos/inactivos
+    - nombre: Busca clientescyo nombre CONTIENE este texto (case-insensitive)
+    - email: Busca clientes cuyo email CONTIENE este texto (case-insensitive)   
     """
-    return db.query(Cliente).offset(skip).limit(limit).all()
+    #Aqui comienza la busqueda
+    query = db.query(Cliente)
+    #-----------------------------------------------
+    #APLICAR FILTROS(Solo si el usuario los indicó)
+    #-----------------------------------------------
+    if activo is not None:
+        query = query.filter(Cliente.activo == activo)
+        
+    if nombre is not None:
+        query = query.filter(Cliente.nombre.ilike(f"%{nombre}%"))
+        
+    if email is not None:
+        query = query.filter(Cliente.email.ilike(f"%{email}%"))
+        
+    return query.offset(skip).limit(limit).all()
 
 
 # ── GET /clientes/{id} ── Buscar cliente por ID ──
