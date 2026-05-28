@@ -28,7 +28,7 @@ class Servicio(Base):
     id           = Column(Integer, primary_key=True, index=True)
     descripcion  = Column(String(255), nullable=False)
     costo        = Column(Float, nullable=False)
-    completado   = Column(Boolean, default=False)
+    facturado   = Column(Boolean, default=False)
     fecha        = Column(DateTime, default=datetime.utcnow)
     cliente_id   = Column(Integer, ForeignKey("clientes.id"))
 

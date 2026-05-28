@@ -41,7 +41,7 @@ class ServicioCreate(ServicioBase):
 
 class ServicioOut(ServicioBase):
     id:         int
-    completado: bool
+    facturado: bool
     fecha:      datetime
 
     class Config:
@@ -52,4 +52,4 @@ class ServicioUpdate(BaseModel):
     """Para actualizar un servicio"""
     descripcion: Optional[str] = None
     costo:       Optional[float] = None
-    completado:  Optional[bool] = None
+    facturado:  Optional[bool] = None

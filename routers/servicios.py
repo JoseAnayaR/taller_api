@@ -39,7 +39,7 @@ def crear_servicio(
 # ── GET /servicios ── Listar servicios ────────────
 @router.get("/", response_model=List[ServicioOut])
 def listar_servicios(
-    completado: bool = None,
+    facturado: bool = None,
     cliente_id: int = None,
     descripcion: str = None,
     db: Session = Depends(get_db)
@@ -47,13 +47,13 @@ def listar_servicios(
     """
     Lista servicios con filtros opcionales.
     Parámetros:
-    - completado: filtrar por estado (True/False)
+    - facturado: filtrar por estado (True/False)
     - cliente_id: servicios de un cliente específico
     """
     query = db.query(Servicio)
     
-    if completado is not None:
-        query = query.filter(Servicio.completado == completado)
+    if facturado is not None:
+        query = query.filter(Servicio.facturado == facturado)
     
     if cliente_id is not None:
         query = query.filter(Servicio.cliente_id == cliente_id)
@@ -83,13 +83,13 @@ def obtener_servicio(
     return servicio
 
 
-# ── PATCH /servicios/{id}/completar ────────────
-@router.patch("/{servicio_id}/completar", response_model=ServicioOut)
-def completar_servicio(
+# ── PATCH /servicios/{id}/facturar ────────────
+@router.patch("/{servicio_id}/facturar", response_model=ServicioOut)
+def facturar_servicio(
     servicio_id: int,
     db: Session = Depends(get_db)
 ):
-    """Marca un servicio como completado/terminado"""
+    """Marca un servicio como facturado/terminado"""
     servicio = db.query(Servicio).filter(
         Servicio.id == servicio_id
     ).first()
@@ -100,7 +100,7 @@ def completar_servicio(
             detail="Servicio no encontrado"
         )
     
-    servicio.completado = True
+    servicio.facturado = True
     db.commit()
     db.refresh(servicio)
     return servicio
