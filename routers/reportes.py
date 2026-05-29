@@ -55,9 +55,9 @@ def reporte_clientes_activos(db: Session = Depends(get_db)):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
-    #-----------------------------
-    # Reporte 2: Ingresos por mes
-    #-----------------------------
+#-----------------------------
+# Reporte 2: Ingresos por mes
+#-----------------------------
     
 @router.get("/ingresos-mes")
 def reporte_ingresos_mes(db: Session = Depends(get_db)):
@@ -166,9 +166,9 @@ def reporte_servicios_facturados(db: Session = Depends(get_db)):
         filename=archivo
     )
     
-    #-----------------------------------
-    # Reporte 4: Servicios sin facturar
-    #-----------------------------------
+#-----------------------------------
+# Reporte 4: Servicios sin facturar
+#-----------------------------------
 @router.get("/servicios-no-facturados")
 def reporte_servicios_no_facturados(db: Session = Depends(get_db)):
     """
@@ -234,7 +234,7 @@ def reporte_top_clientes(db: Session = Depends(get_db)):
     """
     
     # Traer servicios facturados
-    servicios = db.query(Servicio).filter(Servicio.facturado == True).all()
+    servicios = db.query(Servicio).all()
     
     # Agrupar por cliente
     gasto_por_cliente = {}
@@ -327,7 +327,7 @@ def reporte_resumen(db: Session = Depends(get_db)):
     titulo.font = titulo_font
     titulo.fill = titulo_fill
     titulo.alignment = Alignment(horizontal ="center",vertical="center")
-    ws.row_dimension[1].height = 25
+    ws.row_dimensions[1].height = 25
     
     #============================
     #Sección 2: KPIs
@@ -355,24 +355,29 @@ def reporte_resumen(db: Session = Depends(get_db)):
     hoy = datetime.now()
     primero_mes = hoy.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
     
-    servicios_mes = db.query(Servicio).filter(
-        Servicio.fecha >= primero_mes,
-        Servicio.facturado == True
-    ).all()
+    servicios_mes = db.query(Servicio).filter(Servicio.fecha >= primero_mes).all()
     ingresos_mes = sum(s.costo for s in servicios_mes)
     
-    ws[f"A{row}"] = "Ingresos este mes:"
+    ws[f"A{row}"] = "Ingresos totales este mes:"
     ws[f"B{row}"] = f"${ingresos_mes:.2f}"
     row += 1
     
-    # KPI 4: Servicios pendientes
-    pendientes = db.query(Servicio).filter(Servicio.facturado == False).count()
-    ws[f"A{row}"] = "Servicios pendientes de facturar:"
-    ws[f"B{row}"] = pendientes
+    # KPI 4: Servicios facturados
+    con_factura = db.query(Servicio).filter(Servicio.facturado == True).all()
+    ingresos_con_factura = sum(s.costo for s in con_factura)
+    ws[f"A{row}"] = "Servicios facturados:"
+    ws[f"B{row}"] = f"${ingresos_con_factura:.2f}"
     row += 1
     
-    # KPI 5: Ingresos totales (histórico)
-    todos_servicios = db.query(Servicio).filter(Servicio.facturado == True).all()
+    # KPI 5: Servicios sin facturar
+    sin_factura = db.query(Servicio).filter(Servicio.facturado == False).all()
+    ingresos_sin_factura = sum(s.costo for s in sin_factura)
+    ws[f"A{row}"] = "Servicios sin facturar:"
+    ws[f"B{row}"] = f"${ingresos_sin_factura:.2f}"
+    row += 1
+    
+    # KPI 6: Ingresos totales (histórico)
+    todos_servicios = db.query(Servicio).all()
     ingresos_totales = sum(s.costo for s in todos_servicios)
     
     ws[f"A{row}"] = "Ingresos totales (histórico):"

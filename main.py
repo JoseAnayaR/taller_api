@@ -4,7 +4,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import clientes, servicios
+from routers import clientes, servicios, reportes
 
 # Crea todas las tablas en SQLite al iniciar
 Base.metadata.create_all(bind=engine)
@@ -26,6 +26,7 @@ app.add_middleware(
 #Registra las rutas
 app.include_router(clientes.router)
 app.include_router(servicios.router)
+app.include_router(reportes.router)
 
 @app.get("/")
 def raiz():
