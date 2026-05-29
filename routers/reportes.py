@@ -52,7 +52,7 @@ def reporte_clientes_activos(db: Session = Depends(get_db)):
     #Devolver para descargar
     return FileResponse(
         archivo,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
     #-----------------------------
@@ -111,7 +111,7 @@ def reporte_ingresos_mes(db: Session = Depends(get_db)):
     
     return FileResponse(
         archivo,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
     
@@ -162,7 +162,7 @@ def reporte_servicios_facturados(db: Session = Depends(get_db)):
     
     return FileResponse(
         archivo,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
     
@@ -212,14 +212,13 @@ def reporte_servicios_no_facturados(db: Session = Depends(get_db)):
     
     return FileResponse(
         archivo,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
 
 # ─────────────────────────────────────────────────────────────────
 # REPORTE 5: TOP CLIENTES (ANÁLISIS 80/20)
 # ─────────────────────────────────────────────────────────────────
- 
 @router.get("/top-clientes")
 def reporte_top_clientes(db: Session = Depends(get_db)):
     """
@@ -246,17 +245,17 @@ def reporte_top_clientes(db: Session = Depends(get_db)):
         if nombre_cliente not in gasto_por_cliente:
             gasto_por_cliente[nombre_cliente] = {"total": 0.0, "cantidad": 0}
         
+        
         gasto_por_cliente[nombre_cliente]["total"] += servicio.costo
         gasto_por_cliente[nombre_cliente]["cantidad"] += 1
-    
-    # Ordenar por gasto (de mayor a menor)
+    # Ordenar por gasto ( de mayor a menor)
     clientes_ordenados = sorted(
         gasto_por_cliente.items(),
         key=lambda x: x[1]["total"],
         reverse=True
     )
     
-    # Crear tabla con ranking
+    # Crear tabla  con ranking
     total_general = sum(info["total"] for _, info in clientes_ordenados)
     
     datos = []
@@ -264,45 +263,43 @@ def reporte_top_clientes(db: Session = Depends(get_db)):
         porcentaje = (info["total"] / total_general * 100) if total_general > 0 else 0
         
         datos.append({
-            "Posición": posicion,
+            "Posicion": posicion,
             "Cliente": cliente,
             "Total gastado": f"${info['total']:.2f}",
             "Cantidad de servicios": info["cantidad"],
             "Porcentaje del total": f"{porcentaje:.1f}%"
         })
-    
-    if not datos:
-        datos = [{"Posición": 1, "Cliente": "Sin datos", 
-                  "Total gastado": "$0.00", "Cantidad de servicios": 0, 
-                  "Porcentaje del total": "0.0%"}]
-    
+        
+    if not datos :
+        datos = [{"Posición": 1, "Cliente": "Sin datos", "Total gastado": "$0.00", "Cantidad de servicios": 0, 
+"Porcentaje del total": "0.0%"}]
+        
     # DataFrame
     df = pd.DataFrame(datos)
     
     # Guardar
     archivo = "top_clientes.xlsx"
-    df.to_excel(archivo, sheet_name="Top Clientes", index=False)
+    df.to_excel(archivo, sheet_name="Top clientes", index=False)
     
     return FileResponse(
         archivo,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
- 
- 
-# ─────────────────────────────────────────────────────────────────
-# REPORTE 6: RESUMEN EJECUTIVO
-# ─────────────────────────────────────────────────────────────────
- 
+    
+#------------------------------
+# Reporte 6: Resumen ejecutivo
+#------------------------------
+
 @router.get("/resumen")
 def reporte_resumen(db: Session = Depends(get_db)):
     """
-    Descarga Excel con resumen ejecutivo del taller.
+    Descarga Excel con resumen ejecutivo del taller
     
     Secciones:
-    - KPIs (métricas clave)
-    - Top 5 clientes
-    - Últimos 10 servicios
+    -KPIs (métricas claves)
+    -Top 5 clientes
+    -Últimos 10 servicios
     """
     
     from openpyxl import Workbook
@@ -319,21 +316,22 @@ def reporte_resumen(db: Session = Depends(get_db)):
     header_font = Font(bold=True, size=11, color="FFFFFF")
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
     
-    # ═════════════════════════════════════════════
-    # SECCIÓN 1: TÍTULO
-    # ═════════════════════════════════════════════
+    
+    #============================
+    # Sección 1: Título
+    #============================
     
     ws.merge_cells("A1:D1")
     titulo = ws["A1"]
     titulo.value = "RESUMEN EJECUTIVO DEL TALLER"
     titulo.font = titulo_font
     titulo.fill = titulo_fill
-    titulo.alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[1].height = 25
+    titulo.alignment = Alignment(horizontal ="center",vertical="center")
+    ws.row_dimension[1].height = 25
     
-    # ═════════════════════════════════════════════
-    # SECCIÓN 2: KPIs
-    # ═════════════════════════════════════════════
+    #============================
+    #Sección 2: KPIs
+    #============================
     
     row = 3
     ws[f"A{row}"] = "MÉTRICAS CLAVE (KPIs)"
@@ -354,8 +352,8 @@ def reporte_resumen(db: Session = Depends(get_db)):
     row += 1
     
     # KPI 3: Ingresos este mes
-    hoy = datetime.utcnow()
-    primero_mes = hoy.replace(day=1)
+    hoy = datetime.now()
+    primero_mes = hoy.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
     
     servicios_mes = db.query(Servicio).filter(
         Servicio.fecha >= primero_mes,
@@ -398,9 +396,12 @@ def reporte_resumen(db: Session = Depends(get_db)):
     ws[f"B{row}"].fill = header_fill
     row += 1
     
+    # Traer servicios
+    todos_los_servicios = db.query(Servicio).all()
+    
     # Cálculo de top clientes
     gasto_por_cliente = {}
-    for s in servicios:
+    for s in todos_los_servicios:
         nombre = s.cliente.nombre
         if nombre not in gasto_por_cliente:
             gasto_por_cliente[nombre] = 0.0
@@ -460,6 +461,6 @@ def reporte_resumen(db: Session = Depends(get_db)):
     
     return FileResponse(
         archivo,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=archivo
     )
