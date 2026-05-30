@@ -33,7 +33,9 @@ def raiz():
     """Endpoints de prueba"""
     return {
         "mensaje": "¡API del Taller activa",
-        "docs": "http://localhost:8000/docs"
+        "docs": "http://localhost:8000/docs",
+        "redoc": "/redoc",
+        "versión": "1.0.0"
     }
     
 @app.get("/health")

@@ -1,16 +1,27 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 #SQLite para desarrollo local
 #Para producción: "postgresql://user:pass@host/dbname"
-DATABASE_URL = "sqlite:///./taller.db"
+DATABASE_URL = os.getenv('postgresql://postgres:zAbZTuuXvzuUMnjJkDfOqoldNZsKkvbH@zephyr.proxy.rlwy.net:41198/railway')
 
-engine = create_engine(
-    DATABASE_URL,
-    # Solo necesario para SQLite
-    connect_args={"check_same_thread": False}
-)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://",1)
+    
+if DATABASE_URL.startswith("sqlite"):
+    
+    engine = create_engine(
+        DATABASE_URL,
+        # Solo necesario para SQLite
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,
