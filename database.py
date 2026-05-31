@@ -5,9 +5,11 @@ from sqlalchemy.orm import sessionmaker
 
 #SQLite para desarrollo local
 #Para producción: "postgresql://user:pass@host/dbname"
-DATABASE_URL = os.getenv('postgresql://postgres:PwlJrMTIMbVUmklyKlMzxBvQNDbZlZbW@postgres.railway.internal:5432/railway')
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-if DATABASE_URL.startswith("postgres://"):
+if DATABASE_URL is None:
+    DATABASE_URL = "sqlite:///./taller.db"
+elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://",1)
     
 if DATABASE_URL.startswith("sqlite"):
@@ -20,7 +22,7 @@ if DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(
         DATABASE_URL,
-        connect_args={"check_same_thread": False}
+        pool_pre_ping=True
     )
 
 SessionLocal = sessionmaker(
