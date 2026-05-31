@@ -22,4 +22,4 @@ COPY . .
 RUN python -c "from database import Base, engine; Base.metadata.create_all(bind=engine)" || true
 
 # Comando para iniciar la API
-CMD ["uvicorn", "main:app", "--host" "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
