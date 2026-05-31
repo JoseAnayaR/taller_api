@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 #SQLite para desarrollo local
 #Para producción: "postgresql://user:pass@host/dbname"
-DATABASE_URL = os.getenv('postgresql://postgres:zAbZTuuXvzuUMnjJkDfOqoldNZsKkvbH@zephyr.proxy.rlwy.net:41198/railway')
+DATABASE_URL = os.getenv('postgresql://postgres:PwlJrMTIMbVUmklyKlMzxBvQNDbZlZbW@zephyr.proxy.rlwy.net:21881/railway')
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://",1)
