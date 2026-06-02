@@ -1,6 +1,6 @@
 # schemas.py — Validación y serialización de datos con Pydantic
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -24,7 +24,7 @@ class ClienteOut(ClienteBase):
     activo:    bool
     creado_en: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True  # Lee desde ORM
 
 
@@ -44,7 +44,7 @@ class ServicioOut(ServicioBase):
     facturado: bool
     fecha:      datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 

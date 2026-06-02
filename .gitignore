@@ -37,3 +37,7 @@ ENV/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+#Tests
+htmlcov/
+.coverage
