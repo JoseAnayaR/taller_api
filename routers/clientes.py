@@ -118,15 +118,11 @@ def actualizar_cliente(
 
 
 # ── DELETE /clientes/{id} ── Eliminar cliente ────
-@router.delete("/{cliente_id}", status_code=204)
-def eliminar_cliente(
-    cliente_id: int,
-    db: Session = Depends(get_db)
+@router.patch("/{cliente_id}/desactivar")
+def desactivar_cliente(cliente_id: int, db: Session = Depends(get_db)
 ):
-    """Elimina un cliente del sistema"""
-    cliente = db.query(Cliente).filter(
-        Cliente.id == cliente_id
-    ).first()
+    """Desactiva un cliente del sistema sin eliminar sus datos"""
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     
     if not cliente:
         raise HTTPException(
@@ -134,5 +130,12 @@ def eliminar_cliente(
             detail="Cliente no encontrado"
         )
     
-    db.delete(cliente)
+    cliente.activo =  False
+    
     db.commit()
+    db.refresh(cliente)
+    
+    return {
+        "mensaje": f"Cliente '{cliente.nombre}' desactivado",
+        "cliente": cliente
+    }

@@ -269,36 +269,52 @@ def test_actualizar_cliente():
     assert data["email"] == "juan.nuevo@test.com"
 
 
-def test_eliminar_cliente():
+def test_desactivar_cliente():
     """
-    TEST 8: Verifica que puedes eliminar un cliente.
-    
-    Flujo:
-    1. Crear cliente
-    2. DELETE /clientes/{id}
-    3. Intentar obtenerlo nuevamente
-    4. Verificar que retorna 404 (no existe)
+    Verifica que desactivar cliente no elimina servicios.
     """
-    # Crear
-    create_response = client.post(
+    # Crear cliente
+    cliente_response = client.post(
         "/clientes/",
         json={
-            "nombre": "JuanT8",
+            "nombre": "Juan",
             "telefono": "+52 123",
-            "email": "juanT8@test.com"
+            "email": "juan@test.com"
         },
     )
+    cliente_id = cliente_response.json()["id"]
     
-    cliente_id = create_response.json()["id"]
+    # Crear servicio
+    servicio_response = client.post(
+        "/servicios/",
+        json={
+            "descripcion": "Cambio de aceite",
+            "costo": 450.50,
+            "cliente_id": cliente_id
+        },
+    )
+    servicio_id = servicio_response.json()["id"]
     
-    # Eliminar
-    response = client.delete(f"/clientes/{cliente_id}")
-    assert response.status_code == 204
+    # Desactivar cliente
+    response = client.patch(f"/clientes/{cliente_id}/desactivar")
+    assert response.status_code == 200
+    assert response.json()["cliente"]["activo"] == False
     
-    # Verificar que ya no existe
-    response = client.get(f"/clientes/{cliente_id}")
-    assert response.status_code == 404, "Cliente eliminado debería retornar 404"
-
+    # Verificar que servicio SIGUE existiendo
+    response = client.get("/servicios/")
+    servicios = response.json()
+    
+    servicio_ids = [s["id"] for s in servicios]
+    assert servicio_id in servicio_ids, \
+        "Servicio debería existir después de desactivar cliente"
+    
+    # Verificar que dropdown NO muestra clientes inactivos
+    response = client.get("/clientes/?activo=true")
+    clientes_activos = response.json()
+    
+    cliente_ids = [c["id"] for c in clientes_activos]
+    assert cliente_id not in cliente_ids, \
+        "Cliente inactivo no debería aparecer en listado activos"
 
 # ─────────────────────────────────────────────────────────────
 # TESTS PARA SERVICIOS
