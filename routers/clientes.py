@@ -117,7 +117,7 @@ def actualizar_cliente(
     return cliente
 
 
-# ── DELETE /clientes/{id} ── Eliminar cliente ────
+# ── Desactivar /clientes/{id}/desactivar ── desactivar cliente ────
 @router.patch("/{cliente_id}/desactivar")
 def desactivar_cliente(cliente_id: int, db: Session = Depends(get_db)
 ):
@@ -137,5 +137,28 @@ def desactivar_cliente(cliente_id: int, db: Session = Depends(get_db)
     
     return {
         "mensaje": f"Cliente '{cliente.nombre}' desactivado",
+        "cliente": cliente
+    }
+    
+    # ── Activar /clientes/{id} ── Activar cliente ────
+@router.patch("/{cliente_id}/activar")
+def activar_cliente(cliente_id: int, db: Session = Depends(get_db)
+):
+    """Activa un cliente del sistema"""
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    
+    if not cliente:
+        raise HTTPException(
+            status_code=404,
+            detail="Cliente no encontrado"
+        )
+    
+    cliente.activo =  True
+    
+    db.commit()
+    db.refresh(cliente)
+    
+    return {
+        "mensaje": f"Cliente '{cliente.nombre}' activado",
         "cliente": cliente
     }
