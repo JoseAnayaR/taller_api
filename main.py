@@ -38,8 +38,3 @@ def raiz():
         "redoc": "/redoc",
         "versión": "1.0.0"
     }
-    
-@app.get("/health")
-def health_check():
-    """Verificar que la API está funcionando"""
-    return {"status": "healthy"}
