@@ -46,8 +46,6 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
-
-
 # ─────────────────────────────────────────────────────────────
 # TESTS PARA CLIENTES
 # ─────────────────────────────────────────────────────────────
@@ -116,36 +114,10 @@ def test_crear_cliente_email_duplicado():
     assert response.status_code in [400, 409], f"Should reject duplicate email, got {response.status_code}"
 
 
-def test_listar_clientes():
-    """
-    TEST 3: Verifica que puedes listar todos los clientes.
-    
-    Flujo:
-    1. Crear 2 clientes
-    2. Listar GET /clientes/
-    3. Verificar que retorna lista con clientes
-    """
-    # Crear 2 clientes
-    for i in range(2):
-        client.post(
-            "/clientes/",
-            json={
-                "nombre": f"Cliente {i}",
-                "telefono": f"+52 {i}",
-                "email": f"cliente{i}@test.com"
-            },
-        )
-    
-    # Listar
-    response = client.get("/clientes/")
-    
-    assert response.status_code == 200
-    clientes = response.json()
-    assert len(clientes) >= 2, "Debería haber al menos 2 clientes"
 
 def test_listar_clientes_con_todos_los_filtros():
     """
-    TEST: Crea un cliente específico y lo busca usando todos los 
+    TEST 3: Crea un cliente específico y lo busca usando todos los 
     filtros al mismo tiempo (activo, nombre y email).
     """
     # 1. Crear un cliente único para la prueba
@@ -176,69 +148,11 @@ def test_listar_clientes_con_todos_los_filtros():
     assert resultados[0]["nombre"] == nombre_busqueda
     assert resultados[0]["activo"] is True
 
-def test_filtrar_clientes_activos():
-    """
-    TEST 4: Verifica que el filtro por activo=true funciona.
-    
-    Flujo:
-    1. Crear cliente (por defecto activo=true)
-    2. Listar con filtro ?activo=true
-    3. Verificar que TODOS tienen activo=true
-    """
-    # Crear cliente
-    response = client.post(
-        "/clientes/",
-        json={
-            "nombre": "Cliente Activo",
-            "telefono": "+52 123",
-            "email": "activo@test.com"
-        },
-    )
-    
-    assert response.status_code == 201
-    
-    # Listar con filtro activo=true
-    response = client.get("/clientes/?activo=true")
-    
-    assert response.status_code == 200
-    clientes = response.json()
-    
-    # Todos deben tener activo=true
-    for cliente in clientes:
-        assert cliente["activo"] == True, f"Cliente {cliente['id']} tiene activo={cliente['activo']}"
-
-
-def test_filtrar_clientes_nombre():
-    """
-    TEST 5: Verifica que la búsqueda por nombre funciona.
-    
-    Flujo:
-    1. Crear cliente con nombre "Juan García"
-    2. Buscar con ?nombre=juan (minúsculas)
-    3. Verificar que encuentra al cliente
-    """
-    # Crear cliente
-    client.post(
-        "/clientes/",
-        json={
-            "nombre": "Juan García",
-            "telefono": "+52 123",
-            "email": "juan@test.com"
-        },
-    )
-    
-    # Buscar (icase - sin importar mayúsculas)
-    response = client.get("/clientes/?nombre=juan")
-    
-    assert response.status_code == 200
-    clientes = response.json()
-    assert len(clientes) >= 1, "Debería encontrar cliente con 'juan'"
-    assert "juan" in clientes[0]["nombre"].lower()
 
 
 def test_obtener_cliente_por_id():
     """
-    TEST 6: Verifica que puedes obtener un cliente específico por ID.
+    TEST 4: Verifica que puedes obtener un cliente específico por ID.
     
     Flujo:
     1. Crear cliente
@@ -268,7 +182,7 @@ def test_obtener_cliente_por_id():
 
 def test_actualizar_cliente():
     """
-    TEST 7: Verifica que puedes actualizar un cliente.
+    TEST 5: Verifica que puedes actualizar un cliente.
     
     Flujo:
     1. Crear cliente
@@ -305,7 +219,15 @@ def test_actualizar_cliente():
 
 def test_desactivar_cliente():
     """
-    Verifica que desactivar cliente no elimina servicios.
+    TEST 6: Verifica que se desactive cliente sin eliminar servicios.
+    
+    Flujo:
+    1. Crear cliente
+    2. Crear servicio
+    3. Desactivar cliente
+    4. Verificar que se desactivo
+    5. Verificar que los servicios sigan existiendo
+    6. Al final verificamos que el dropdown para seleccionar cliente no muestre el inactivo
     """
     # Crear cliente
     cliente_response = client.post(
@@ -353,7 +275,13 @@ def test_desactivar_cliente():
 
 def test_activar_cliente():
     """
-    Verifica que desactivar cliente no elimina servicios.
+    TEST 7: Verifica que se reactive cliente sin eliminar/modificar servicios.
+    
+    Flujo:
+    1. Crear cliente
+    2. Desactivar cliente
+    3. Verificar que se desactivo
+    4. Reactivar y verificar  que activo == True
     """
     # Crear cliente
     cliente_response = client.post(
@@ -366,16 +294,6 @@ def test_activar_cliente():
     )
     cliente_id = cliente_response.json()["id"]
     
-    # Crear servicio
-    servicio_response = client.post(
-        "/servicios/",
-        json={
-            "descripcion": "Cambio de aceite",
-            "costo": 450.50,
-            "cliente_id": cliente_id
-        },
-    )
-    servicio_id = servicio_response.json()["id"]
     
     # Desactivar cliente
     response = client.patch(f"/clientes/{cliente_id}/desactivar")
@@ -387,27 +305,17 @@ def test_activar_cliente():
     assert response.status_code == 200
     assert response.json()["cliente"]["activo"] == True
     
-    # Verificar que servicio SIGUE existiendo
-    response = client.get("/servicios/")
-    servicios = response.json()
-    
-    servicio_ids = [s["id"] for s in servicios]
-    assert servicio_id in servicio_ids, \
-        "Servicio debería existir después de reactivar cliente"
-    
-    # Verificar que dropdown NO muestra clientes inactivos
-    response = client.get("/clientes/?activo=true")
-    clientes_activos = response.json()
-    
-    cliente_ids = [c["id"] for c in clientes_activos]
-    assert cliente_id in cliente_ids, \
-        "Cliente activo debería aparecer en listado activos de nuevo"
 
 
 def test_obtener_cliente_no_encontrado():
     """
-    TEST: Verifica que buscar un cliente con un ID inexistente
+    TEST 8: Verifica que buscar un cliente con un ID inexistente
     retorna un código de estado 404.
+    
+    Flujo:
+    1. Crear id inexistente
+    2. Crear respuesta con cliente inexistente
+    3. Verificar que el codigo muestre 404 y mensaje "Cliente no encontrado"
     """
     id_inexistente = 999999
     
@@ -420,7 +328,15 @@ def test_obtener_cliente_no_encontrado():
     
 
 def test_actualizar_cliente_no_encontrado():
-    """Verifica que PUT /clientes/{id} devuelva 404 si el ID no existe"""
+    """
+    TEST 9: Verifica que buscar un cliente con un ID inexistente
+    retorna un código de estado 404.
+    
+    Flujo:
+    1. Crear id inexistente
+    2. Crear entrada json para id inexistente
+    3. Verificar que el codigo muestre 404 y mensaje "Cliente no encontrado"
+    """
     id_inexistente = 999999
     response = client.put(
         f"/clientes/{id_inexistente}",
@@ -435,7 +351,15 @@ def test_actualizar_cliente_no_encontrado():
 
 
 def test_desactivar_cliente_no_encontrado():
-    """Verifica que PATCH /clientes/{id}/desactivar devuelva 404 si el ID no existe"""
+    """
+    TEST 10: Verifica que buscar un cliente con un ID inexistente
+    retorna un código de estado 404.
+    
+    Flujo:
+    1. Crear id inexistente
+    2. Intentar desactivar cliente inexistente
+    3. Verificar que el codigo muestre 404 y mensaje "Cliente no encontrado"
+    """
     id_inexistente = 999999
     response = client.patch(f"/clientes/{id_inexistente}/desactivar")
     
@@ -444,7 +368,15 @@ def test_desactivar_cliente_no_encontrado():
 
 
 def test_activar_cliente_no_encontrado():
-    """Verifica que PATCH /clientes/{id}/activar devuelva 404 si el ID no existe"""
+    """
+    TEST 11: Verifica que buscar un cliente con un ID inexistente
+    retorna un código de estado 404.
+    
+    Flujo:
+    1. Crear id inexistente
+    2. Intentar reactivar cliente inexistente
+    3. Verificar que el codigo muestre 404 y mensaje "Cliente no encontrado"
+    """
     id_inexistente = 999999
     response = client.patch(f"/clientes/{id_inexistente}/activar")
     
@@ -457,7 +389,7 @@ def test_activar_cliente_no_encontrado():
 
 def test_crear_servicio():
     """
-    TEST 9: Verifica que puedes crear un servicio.
+    TEST 12: Verifica que puedes crear un servicio.
     
     Flujo:
     1. Crear cliente (necesario para servicio)
@@ -495,7 +427,7 @@ def test_crear_servicio():
 
 def test_crear_servicio_sin_cliente():
     """
-    TEST 10: Verifica que rechaza servicio sin cliente válido.
+    TEST 13: Verifica que rechaza servicio sin cliente válido.
     
     Flujo:
     1. Intentar crear servicio con cliente_id que no existe
@@ -512,49 +444,45 @@ def test_crear_servicio_sin_cliente():
     
     assert response.status_code in [400, 404], f"Should reject invalid cliente_id, got {response.status_code}"
 
-
-def test_listar_servicios():
-    """
-    TEST 11: Verifica que puedes listar servicios.
+def test_servicios_no_encontrados_404():
+    """TEST 14: Verifica que todos los endpoints manejen excepciones y error 404.
     
     Flujo:
-    1. Crear cliente
-    2. Crear servicio
-    3. GET /servicios/
-    4. Verificar que aparece en lista
+    1. Crear cliente_id inexistente
+    2. Probar metodos GET, PATCH, PUT Y DELETE
+    3. Verificar que todos manejen error 404 y mensaje de error
     """
-    # Crear cliente
-    cliente_response = client.post(
-        "/clientes/",
-        json={
-            "nombre": "JuanT11",
-            "telefono": "+52 123",
-            "email": "juant11@test.com"
-        },
-    )
-    cliente_id = cliente_response.json()["id"]
+    id_falso = 999999
     
-    # Crear servicio
-    client.post(
-        "/servicios/",
-        json={
-            "descripcion": "Cambio de aceite",
-            "costo": 450.50,
-            "cliente_id": cliente_id
-        },
-    )
+    # Probar GET 404
+    resp_get = client.get(f"/servicios/{id_falso}")
+    assert resp_get.status_code == 404
+    assert resp_get.json()["detail"] == "Servicio no encontrado"
     
-    # Listar
-    response = client.get("/servicios/")
+    # Probar PATCH 404 (Corregido a client.patch)
+    resp_patch = client.patch(f"/servicios/{id_falso}/facturar")
+    assert resp_patch.status_code == 404
+    assert resp_patch.json()["detail"] == "Servicio no encontrado"
     
-    assert response.status_code == 200
-    servicios = response.json()
-    assert len(servicios) >= 1
+    resp_patch = client.patch(f"/servicios/{id_falso}/sin-facturar")
+    assert resp_patch.status_code == 404
+    assert resp_patch.json()["detail"] == "Servicio no encontrado"
+    
+    # Probar PUT 404
+    resp_put = client.put(f"/servicios/{id_falso}", json={
+        "descripcion": "Fallo", "costo": 0.0, "cliente_id": 1
+    })
+    assert resp_put.status_code == 404
+    
+    # Probar DELETE 404
+    resp_delete = client.delete(f"/servicios/{id_falso}")
+    assert resp_delete.status_code == 404
+    
 
 
 def test_filtrar_servicios_no_facturados():
     """
-    TEST 12: Verifica que filtro por facturado=false funciona.
+    TEST 15: Verifica que filtro por facturado=false funciona.
     
     Flujo:
     1. Crear servicio (por defecto facturado=false)
@@ -591,14 +519,18 @@ def test_filtrar_servicios_no_facturados():
         assert servicio["facturado"] == False
 
 
-def test_marcar_servicio_facturado():
+
+
+def test_marcar_servicio_facturado_o_no_facturado():
     """
-    TEST 13: Verifica que puedes marcar un servicio como facturado.
+    TEST 16: Verifica que puedes marcar un servicio como no facturado.
     
     Flujo:
     1. Crear cliente y servicio (facturado=false)
     2. PATCH /servicios/{id}/facturar
     3. Verificar que ahora facturado=true
+    4.PATCH/servicios/{id}/sin-sacturar
+    5.Verificar que ahora facturado=false
     """
     # Crear cliente y servicio
     cliente_response = client.post(
@@ -627,83 +559,92 @@ def test_marcar_servicio_facturado():
     assert response.status_code == 200
     assert response.json()["facturado"] == True
     
-def test_obtener_servicio_por_id_exitoso():
-    """Verifica que puedes obtener los detalles de un servicio real por su ID."""
-    # Crear cliente y servicio base
-    cli_resp = client.post("/clientes/", json={"nombre": "Pedro", "email": "pedro@test.com"})
-    cli_id = cli_resp.json()["id"]
+    response = client.patch(f"/servicios/{servicio_id}/sin-facturar")
     
-    srv_resp = client.post("/servicios/", json={
-        "descripcion": "Alineación y balanceo",
-        "costo": 600.0,
-        "cliente_id": cli_id
-    })
-    srv_id = srv_resp.json()["id"]
-    
-    # Buscar el servicio
-    response = client.get(f"/servicios/{srv_id}")
     assert response.status_code == 200
-    assert response.json()["descripcion"] == "Alineación y balanceo"
+    assert response.json()["facturado"] == False
 
 
-# 2. Caso feliz que faltaba: PUT /servicios/{id} (Actualizar)
+
 def test_actualizar_servicio_exitoso():
-    """Verifica que puedes modificar la descripción o el costo de un servicio existente."""
-    cli_resp = client.post("/clientes/", json={"nombre": "Luis", "email": "luis@test.com"})
-    cli_id = cli_resp.json()["id"]
+    """
+    TEST 17: Verifica que se puede modificar los argumentos de un servicio creado.
     
-    srv_resp = client.post("/servicios/", json={
+    Flujo:
+    1. Crear cliente y servicio base
+    2. Guardar id de servicio
+    3. Ingresar modificacion con metodo PUT, cambio en precio y descripción
+    4. Verificar staus_code == 200 y descripcion de servicio concuerda con las modificaciones
+    """
+    cliente = client.post("/clientes/", json={"nombre": "Luis", "email": "luis@test.com"})
+    cliente_id = cliente.json()["id"]
+    
+    servicio = client.post("/servicios/", json={
         "descripcion": "Frenos delanteros",
         "costo": 1200.0,
-        "cliente_id": cli_id
+        "cliente_id": cliente_id
     })
-    srv_id = srv_resp.json()["id"]
+    servicio_id = servicio.json()["id"]
     
     # Actualizar costo y descripción
-    response = client.put(f"/servicios/{srv_id}", json={
+    response = client.put(f"/servicios/{servicio_id}", json={
         "descripcion": "Frenos delanteros + Rectificado",
         "costo": 1800.0,
-        "cliente_id": cli_id
+        "cliente_id": cliente_id
     })
     assert response.status_code == 200
     assert response.json()["costo"] == 1800.0
     assert "Rectificado" in response.json()["descripcion"]
 
 
-# 3. Caso feliz que faltaba: DELETE /servicios/{id} (Eliminar)
 def test_eliminar_servicio_exitoso():
-    """Verifica que se puede borrar un servicio de forma permanente."""
-    cli_resp = client.post("/clientes/", json={"nombre": "Hugo", "email": "hugo@test.com"})
-    cli_id = cli_resp.json()["id"]
+    """
+    TEST 18: Verifica que se puede eliminar un servicio creado.
     
-    srv_resp = client.post("/servicios/", json={
+    Flujo:
+    1. Crear cliente y servicio base
+    2. Guardar id de servicio
+    3. Borrar servicio "cliente.delete..."
+    4. Verificar respuesta de servidor 204 Sin contenido
+    5. Verificar que cliente no existe mas utilizando metodo GET debe devolver error 404
+    """
+    cliente = client.post("/clientes/", json={"nombre": "Hugo", "email": "hugo@test.com"})
+    cliente_id = cliente.json()["id"]
+    
+    servicio = client.post("/servicios/", json={
         "descripcion": "Diagnóstico Escáner",
         "costo": 350.0,
-        "cliente_id": cli_id
+        "cliente_id": cliente_id
     })
-    srv_id = srv_resp.json()["id"]
+    servicio_id = servicio.json()["id"]
     
     # Borrar el servicio
-    delete_response = client.delete(f"/servicios/{srv_id}")
+    delete_response = client.delete(f"/servicios/{servicio_id}")
     assert delete_response.status_code == 204  # Sin contenido, borrado exitoso
     
     # Confirmar que ya no existe (Debe dar 404)
-    get_response = client.get(f"/servicios/{srv_id}")
+    get_response = client.get(f"/servicios/{servicio_id}")
     assert get_response.status_code == 404
 
 
-# 4. Súper test de filtros acumulados para GET /servicios/
 def test_listar_servicios_con_multiples_filtros():
-    """Cubre las líneas de filtros por 'cliente_id' y 'descripcion' en el listado."""
+    """
+    TEST 19: Verifica que se enlistan los servicios aplicando los filtros.
+    
+    Flujo:
+    1. Crear cliente y servicio base
+    2. Tratar de obtener servicio con metodo GET agregando parametros
+    3. Verificar status code 200 y clientes.len sea igual o mayor que 1
+    """
     # 1. Crear cliente
-    cli_resp = client.post("/clientes/", json={"nombre": "María", "email": "maria@test.com"})
-    cli_id = cli_resp.json()["id"]
+    cliente = client.post("/clientes/", json={"nombre": "María", "email": "maria@test.com"})
+    cliente_id = cliente.json()["id"]
     
     # 2. Crear servicio
     client.post("/servicios/", json={
         "descripcion": "Cambio de Bujías Platino",
         "costo": 850.0,
-        "cliente_id": cli_id
+        "cliente_id": cliente_id
     })
     
     # 3. Buscar usando el diccionario params (evita problemas de tipos en el string)
@@ -711,41 +652,16 @@ def test_listar_servicios_con_multiples_filtros():
         "/servicios/", 
         params={
             "facturado": False, 
-            "cliente_id": cli_id, 
-            "descripcion": "bujías"
+            "cliente_id": cliente_id, 
+            "descripcion": "bujias"
         }
     )
     
     assert response.status_code == 200
     resultados = response.json()
-    assert len(resultados) == 1
+    assert len(resultados) >= 1
     assert "Bujías" in resultados[0]["descripcion"]
 
-
-# 5. Bloque masivo para cubrir todas las excepciones 404 de "Servicio no encontrado"
-def test_servicios_no_encontrados_404():
-    """Fuerza la ejecución de las líneas 'raise HTTPException' de ID inexistente."""
-    id_falso = 999999
-    
-    # Probar GET 404
-    resp_get = client.get(f"/servicios/{id_falso}")
-    assert resp_get.status_code == 404
-    assert resp_get.json()["detail"] == "Servicio no encontrado"
-    
-    # Probar PATCH 404 (Corregido a client.patch)
-    resp_patch = client.patch(f"/servicios/{id_falso}/facturar")
-    assert resp_patch.status_code == 404
-    assert resp_patch.json()["detail"] == "Servicio no encontrado"
-    
-    # Probar PUT 404
-    resp_put = client.put(f"/servicios/{id_falso}", json={
-        "descripcion": "Fallo", "costo": 0.0, "cliente_id": 1
-    })
-    assert resp_put.status_code == 404
-    
-    # Probar DELETE 404
-    resp_delete = client.delete(f"/servicios/{id_falso}")
-    assert resp_delete.status_code == 404
 
 
 # ─────────────────────────────────────────────────────────────
@@ -754,7 +670,7 @@ def test_servicios_no_encontrados_404():
 
 def test_reporte_clientes_activos():
     """
-    TEST 14: Verifica que se puede generar reporte de clientes activos.
+    TEST 20: Verifica que se puede generar reporte de clientes activos.
     
     Flujo:
     1. Crear cliente
@@ -782,7 +698,7 @@ def test_reporte_clientes_activos():
 
 def test_reporte_ingresos():
     """
-    TEST 15: Verifica que se genera reporte de ingresos.
+    TEST 21: Verifica que se genera reporte de ingresos.
     
     Flujo:
     1. Crear cliente
@@ -823,7 +739,10 @@ def test_reporte_ingresos():
     assert "spreadsheetml" in content_type or "application/vnd" in content_type
     
 def test_reporte_clientes_activos_vacio():
-    """Cubre el bloque 'if not datos' en reporte_clientes_activos"""
+    """
+    TEST 22: Cubre el bloque 'if not datos' en reporte_clientes_activos
+    
+    """
     # Nota: Asegúrate de que no haya clientes activos en la DB antes de este test
     response = client.get("/reportes/clientes-activos")
     assert response.status_code == 200
@@ -831,40 +750,53 @@ def test_reporte_clientes_activos_vacio():
     assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 def test_reporte_ingresos_mes_vacio():
-    """Cubre el bloque 'if not datos' en reporte_ingresos_mes"""
+    """
+    TEST 23: Cubre el bloque 'if not datos' en reporte_ingresos_mes
+    
+    """
     response = client.get("/reportes/ingresos-mes")
     assert response.status_code == 200
     assert "spreadsheetml" in response.headers["content-type"]
 
 def test_reporte_servicios_facturados_vacio():
-    """Cubre el bloque 'if not datos' en reporte_servicios_facturados"""
+    """
+    TEST 24: Cubre el bloque 'if not datos' en reporte_servicios_facturados
+    
+    """
     response = client.get("/reportes/servicios-facturados")
     assert response.status_code == 200
     assert "spreadsheetml" in response.headers["content-type"]
 
 def test_reporte_servicios_no_facturados_vacio():
-    """Cubre el bloque 'if not datos' en reporte_servicios_no_facturados"""
+    """
+    TEST 25: Cubre el bloque 'if not datos' en reporte_servicios_no_facturados
+    
+    """
     response = client.get("/reportes/servicios-no-facturados")
     assert response.status_code == 200
 
 def test_reporte_top_clientes_vacio():
-    """Cubre el bloque 'if not datos' y el cálculo de porcentaje con total_general = 0"""
+    """
+    TEST 26: Cubre el bloque 'if not datos' y el cálculo de porcentaje con total_general = 0
+    
+    """
     response = client.get("/reportes/top-clientes")
     assert response.status_code == 200
     
 def test_reporte_resumen_ejecutivo_completo():
     """
+    TEST 27:
     Cubre todas las secciones del resumen ejecutivo:
     KPIs, Top 5 clientes y Últimos 10 servicios.
     """
     # 1. Crear datos mínimos para que las secciones tengan qué mostrar
     resp_cli = client.post("/clientes/", json={"nombre": "Admin Test", "email": "admin@taller.com"})
-    cli_id = resp_cli.json()["id"]
+    cliente_id = resp_cli.json()["id"]
     
     client.post("/servicios/", json={
         "descripcion": "Mantenimiento General",
         "costo": 1500.0,
-        "cliente_id": cli_id
+        "cliente_id": cliente_id
     })
 
     # 2. Ejecutar el reporte

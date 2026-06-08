@@ -6,6 +6,7 @@ from typing import List
 from database import get_db
 from models import Servicio, Cliente
 from schemas import ServicioCreate, ServicioOut, ServicioUpdate
+from unidecode  import unidecode
 
 router = APIRouter(prefix="/servicios", tags=["Servicios"])
 
@@ -58,8 +59,19 @@ def listar_servicios(
     if cliente_id is not None:
         query = query.filter(Servicio.cliente_id == cliente_id)
     
-    if descripcion is not None:
-        query = query.filter(Servicio.descripcion.ilike(f"%{descripcion}%"))
+    if descripcion:
+        # Convertir busqueda a sin acentos y lower
+        descripcion_sin_acentos = unidecode(descripcion).lower()
+        # Obtener todos los servicios (sin acentos en BD)
+        servicios = query.all()
+        # Filtrar en Python (insensible a acentos)
+        servicios = [
+            s for s in servicios
+            if descripcion_sin_acentos in unidecode(s.descripcion).lower()
+        ]
+        query = db.query(Servicio).filter(
+            Servicio.id.in_([s.id for s in servicios])
+        )
     
     return query.all()
 
@@ -89,7 +101,7 @@ def facturar_servicio(
     servicio_id: int,
     db: Session = Depends(get_db)
 ):
-    """Marca un servicio como facturado/terminado"""
+    """Marca un servicio como facturado"""
     servicio = db.query(Servicio).filter(
         Servicio.id == servicio_id
     ).first()
@@ -105,6 +117,27 @@ def facturar_servicio(
     db.refresh(servicio)
     return servicio
 
+
+# --- PATCH /servicios/{id}/sin-facturar------------
+@router.patch("/{servicio_id}/sin-facturar", response_model=ServicioOut)
+def servicio_sin_facturar(
+    servicio_id = int,
+    db: Session = Depends(get_db)
+):
+    """Marca un servicio como no facturado"""
+    servicio = db.query(Servicio).filter(
+        Servicio.id == servicio_id
+    ).first()
+    if not servicio:
+        raise HTTPException(
+            status_code = 404,
+            detail="Servicio no encontrado"
+        )
+        
+    servicio.facturado = False
+    db.commit()
+    db.refresh(servicio)
+    return servicio
 
 # ── PUT /servicios/{id} ── Actualizar servicio ────
 @router.put("/{servicio_id}", response_model=ServicioOut)

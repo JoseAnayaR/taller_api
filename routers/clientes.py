@@ -6,6 +6,7 @@ from typing import List
 from database import get_db
 from models import Cliente
 from schemas import ClienteCreate, ClienteOut
+from unidecode import unidecode
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
@@ -61,8 +62,17 @@ def listar_clientes(
     if activo is not None:
         query = query.filter(Cliente.activo == activo)
         
-    if nombre is not None:
-        query = query.filter(Cliente.nombre.ilike(f"%{nombre}%"))
+    if nombre:
+        # Busqueda sin acentos
+        nombre_sin_acentos = unidecode(nombre).lower()
+        clientes = query.all()
+        clientes = [
+            c for c in clientes
+            if nombre_sin_acentos in unidecode(c.nombre).lower()
+        ]
+        query = db.query(Cliente).filter(
+            Cliente.id.in_([c.id for c in clientes])
+        )
         
     if email is not None:
         query = query.filter(Cliente.email.ilike(f"%{email}%"))
