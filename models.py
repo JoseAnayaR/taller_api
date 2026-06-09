@@ -35,12 +35,3 @@ class Servicio(Base):
     cliente      = relationship("Cliente", back_populates="servicios")
 
 
-# ─── Tabla de Pagos ──────────────────────────────
-class Pago(Base):
-    __tablename__ = "pagos"
-
-    id           = Column(Integer, primary_key=True, index=True)
-    monto        = Column(Float, nullable=False)
-    metodo       = Column(String(50))  # efectivo, tarjeta, transferencia
-    servicio_id  = Column(Integer, ForeignKey("servicios.id"))
-    fecha        = Column(DateTime, default=datetime.utcnow)
